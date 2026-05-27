@@ -15,8 +15,8 @@ export default function Home() {
           </div>
         </div>
         <div className="flex gap-2 text-sm">
-          <a className="rounded-lg bg-slate-900 px-3 py-2 text-white" href="#">로그인</a>
-          <a className="rounded-lg border border-slate-300 px-3 py-2" href="#">회원가입</a>
+          <Link className="rounded-lg bg-slate-900 px-3 py-2 text-white" href="/login">로그인</Link>
+          <Link className="rounded-lg border border-slate-300 px-3 py-2" href="/signup">회원가입</Link>
         </div>
       </header>
 
