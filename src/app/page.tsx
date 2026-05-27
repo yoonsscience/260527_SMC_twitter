@@ -1,9 +1,16 @@
 import Link from "next/link";
 import AuthButtons from "@/components/AuthButtons";
-import { db } from "@/lib/store";
+import { categoryLabelMap } from "@/lib/category";
+import { prisma } from "@/lib/prisma";
 
-export default function Home() {
-  const recentIssues = db.issues.filter((issue) => issue.status !== "HIDDEN").slice(0, 9);
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const recentIssues = await prisma.issue.findMany({
+    where: { status: { not: "HIDDEN" } },
+    orderBy: { createdAt: "desc" },
+    take: 9,
+  });
 
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-10">
@@ -41,7 +48,7 @@ export default function Home() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {recentIssues.map((issue) => (
             <Link key={issue.id} href={`/issues/${issue.id}`} className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-              <p className="text-xs text-cyan-700">{issue.category}</p>
+              <p className="text-xs text-cyan-700">{categoryLabelMap[issue.category]}</p>
               <h4 className="mt-1 text-lg font-semibold text-slate-900">{issue.title}</h4>
               <p className="mt-2 text-sm text-slate-600">{issue.description}</p>
               <div className="mt-3 flex flex-wrap gap-1">

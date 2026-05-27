@@ -1,0 +1,87 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum IssueStatus {
+  OPEN
+  ARCHIVED
+  HIDDEN
+}
+
+enum Category {
+  BASIC_SCIENCE
+  CLIMATE
+  BIO_HEALTH_MEDICAL
+  TECHNOLOGY
+  SOCIETY_INCIDENTS
+  OTHER
+}
+
+enum ReactionType {
+  UP
+  DOWN
+}
+
+model User {
+  id          String    @id @default(cuid())
+  name        String
+  affiliation String
+  email       String    @unique
+  password    String
+  role        UserRole  @default(USER)
+  opinions    Opinion[]
+  reactions   Reaction[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Issue {
+  id              String     @id @default(cuid())
+  title           String
+  description     String
+  imageUrl        String
+  tags            String[]
+  category        Category
+  status          IssueStatus @default(OPEN)
+  relatedIssueIds String[]
+  createdBy       String
+  opinions        Opinion[]
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+}
+
+model Opinion {
+  id            String      @id @default(cuid())
+  issueId       String
+  issue         Issue       @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  authorId      String
+  author        User        @relation(fields: [authorId], references: [id])
+  title         String
+  body          String
+  quoteOpinionId String?
+  reactions     Reaction[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Reaction {
+  id          String       @id @default(cuid())
+  opinionId   String
+  opinion     Opinion      @relation(fields: [opinionId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  reactionType ReactionType
+  createdAt   DateTime     @default(now())
+
+  @@unique([opinionId, userId])
+}

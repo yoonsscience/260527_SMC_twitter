@@ -1,14 +1,22 @@
+import { Category } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { categoryList, db } from "@/lib/store";
+import { categoryMap } from "@/lib/category";
+import { prisma } from "@/lib/prisma";
 
 export async function GET() {
-  const visible = db.issues.filter((issue) => issue.status !== "HIDDEN");
-  return NextResponse.json({ issues: visible.slice(0, 9) });
+  const issues = await prisma.issue.findMany({
+    where: { status: { not: "HIDDEN" } },
+    orderBy: { createdAt: "desc" },
+    take: 9,
+  });
+  return NextResponse.json({ issues });
 }
 
 export async function POST(req: Request) {
   const adminEmail = req.headers.get("x-admin-email");
-  const admin = db.users.find((u) => u.email === adminEmail && u.role === "ADMIN");
+  const admin = adminEmail
+    ? await prisma.user.findFirst({ where: { email: adminEmail, role: "ADMIN" } })
+    : null;
 
   if (!admin) {
     return NextResponse.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
@@ -21,24 +29,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "이슈 생성 필수값이 누락되었습니다." }, { status: 400 });
   }
 
-  if (!categoryList.includes(category)) {
+  const mappedCategory = categoryMap[category as keyof typeof categoryMap] as Category | undefined;
+  if (!mappedCategory) {
     return NextResponse.json({ error: "유효하지 않은 분야입니다." }, { status: 400 });
   }
 
-  const issue = {
-    id: db.makeId("issue"),
-    title,
-    description,
-    imageUrl,
-    tags,
-    category,
-    relatedIssueIds: Array.isArray(relatedIssueIds) ? relatedIssueIds : [],
-    status: "OPEN" as const,
-    createdBy: admin.id,
-    createdAt: new Date().toISOString(),
-  };
-
-  db.issues.unshift(issue);
+  const issue = await prisma.issue.create({
+    data: {
+      title,
+      description,
+      imageUrl,
+      tags,
+      category: mappedCategory,
+      relatedIssueIds: Array.isArray(relatedIssueIds) ? relatedIssueIds : [],
+      createdBy: admin.id,
+    },
+  });
 
   return NextResponse.json({ message: "이슈 생성 완료", issue }, { status: 201 });
 }
