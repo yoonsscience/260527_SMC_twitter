@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const router = useRouter();
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -24,9 +26,10 @@ export default function LoginPage() {
       return;
     }
 
-    setMessage(`로그인 성공: ${data.user.name} (${data.user.role})`);
     localStorage.setItem("smc_user", JSON.stringify(data.user));
     localStorage.setItem("smc_token", data.token);
+    router.push("/");
+    router.refresh();
   };
 
   return (

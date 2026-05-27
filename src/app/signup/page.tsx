@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function SignupPage() {
   const [name, setName] = useState("");
@@ -9,6 +10,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const router = useRouter();
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -26,11 +28,11 @@ export default function SignupPage() {
       return;
     }
 
-    setMessage("가입 완료! 이제 로그인해 주세요.");
-    setName("");
-    setAffiliation("");
-    setEmail("");
-    setPassword("");
+    setMessage("가입 완료! 로그인 페이지로 이동합니다.");
+    setTimeout(() => {
+      router.push("/login");
+      router.refresh();
+    }, 700);
   };
 
   return (

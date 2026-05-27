@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AuthButtons from "@/components/AuthButtons";
 import { db } from "@/lib/store";
 
 export default function Home() {
@@ -14,10 +15,7 @@ export default function Home() {
             <h1 className="text-2xl font-bold text-slate-900">SMC twitter</h1>
           </div>
         </div>
-        <div className="flex gap-2 text-sm">
-          <Link className="rounded-lg bg-slate-900 px-3 py-2 text-white" href="/login">로그인</Link>
-          <Link className="rounded-lg border border-slate-300 px-3 py-2" href="/signup">회원가입</Link>
-        </div>
+        <AuthButtons />
       </header>
 
       <section className="mb-8 rounded-2xl bg-gradient-to-r from-cyan-700 to-sky-500 p-6 text-white">
