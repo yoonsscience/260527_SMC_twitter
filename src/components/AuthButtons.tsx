@@ -34,6 +34,7 @@ export default function AuthButtons() {
 
   return (
     <div className="flex items-center gap-2 text-sm">
+      {user.role === "ADMIN" ? <Link href="/admin" className="rounded-lg border border-cyan-300 px-3 py-2 text-cyan-700">관리자</Link> : null}
       <span className="rounded-lg bg-slate-100 px-3 py-2 text-slate-700">{user.name}</span>
       <button
         className="rounded-lg border border-slate-300 px-3 py-2"
