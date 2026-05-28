@@ -123,9 +123,9 @@ export default function IssueDetailClient({ issue, related }: { issue: IssueView
         <p className="mt-3 text-xs text-slate-500">{op.author?.name} ({op.author?.email})</p>
 
         <div className="mt-3 flex flex-wrap gap-2 text-sm">
-          <button className="pressable rounded-md border border-slate-300 px-2 py-1" onClick={() => react(op.id, "UP")}>공감 +1 ({op.votes.up})</button>
-          <button className="pressable rounded-md border border-slate-300 px-2 py-1" onClick={() => react(op.id, "DOWN")}>반론 -1 ({op.votes.down})</button>
-          <button className="pressable rounded-md border border-cyan-300 px-2 py-1 text-cyan-700" onClick={() => { setQuoteTarget(op); setIsModalOpen(true); }}>인용 답글</button>
+          <button title={!sessionUser ? "로그인 필요" : issue.status !== "OPEN" ? "종료된 이슈" : ""} disabled={!sessionUser || issue.status !== "OPEN"} className="pressable rounded-md border border-slate-300 px-2 py-1 disabled:cursor-not-allowed disabled:opacity-50" onClick={() => react(op.id, "UP")}>공감 +1 ({op.votes.up})</button>
+          <button title={!sessionUser ? "로그인 필요" : issue.status !== "OPEN" ? "종료된 이슈" : ""} disabled={!sessionUser || issue.status !== "OPEN"} className="pressable rounded-md border border-slate-300 px-2 py-1 disabled:cursor-not-allowed disabled:opacity-50" onClick={() => react(op.id, "DOWN")}>반론 -1 ({op.votes.down})</button>
+          <button disabled={!sessionUser || issue.status !== "OPEN"} className="pressable rounded-md border border-cyan-300 px-2 py-1 text-cyan-700 disabled:cursor-not-allowed disabled:opacity-50" onClick={() => { if (!sessionUser || issue.status !== "OPEN") return; setQuoteTarget(op); setIsModalOpen(true); }}>인용 답글</button>
         </div>
 
         {children.length > 0 ? <div className="mt-3 space-y-3 border-l border-slate-200 pl-3">{children.map((child) => renderOpinion(child, depth + 1))}</div> : null}
