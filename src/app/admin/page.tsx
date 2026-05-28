@@ -48,13 +48,17 @@ export default function AdminPage() {
   const [curationImageUrl, setCurationImageUrl] = useState("");
   const [selectedIssueIds, setSelectedIssueIds] = useState<string[]>([]);
 
+  const [editingIssue, setEditingIssue] = useState<IssueItem | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [editImageUrl, setEditImageUrl] = useState("");
+  const [editTagsInput, setEditTagsInput] = useState("");
+
   useEffect(() => {
     const raw = localStorage.getItem("smc_user");
     if (!raw) return;
-
     try {
-      const parsed = JSON.parse(raw) as SessionUser;
-      setUser(parsed);
+      setUser(JSON.parse(raw) as SessionUser);
     } catch {
       localStorage.removeItem("smc_user");
     }
@@ -69,11 +73,7 @@ export default function AdminPage() {
     });
 
     const data = await res.json();
-    if (!res.ok) {
-      setMessage(data.error ?? "이슈 목록 조회 실패");
-      return;
-    }
-
+    if (!res.ok) return setMessage(data.error ?? "이슈 목록 조회 실패");
     setIssues(data.issues ?? []);
   };
 
@@ -94,34 +94,21 @@ export default function AdminPage() {
     }
   }, [isAdmin, user?.email]);
 
-  const tags = useMemo(
-    () => tagsInput.split(",").map((t) => t.trim()).filter(Boolean),
-    [tagsInput],
-  );
+  const tags = useMemo(() => tagsInput.split(",").map((t) => t.trim()).filter(Boolean), [tagsInput]);
 
   const createIssue = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage("");
-
-    if (!user?.email) {
-      setMessage("관리자 로그인이 필요합니다.");
-      return;
-    }
+    if (!user?.email) return setMessage("관리자 로그인이 필요합니다.");
 
     const res = await fetch("/api/issues", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-admin-email": user.email,
-      },
+      headers: { "Content-Type": "application/json", "x-admin-email": user.email },
       body: JSON.stringify({ title, description, imageUrl, tags, category, relatedIssueIds: [] }),
     });
 
     const data = await res.json();
-    if (!res.ok) {
-      setMessage(data.error ?? "이슈 생성 실패");
-      return;
-    }
+    if (!res.ok) return setMessage(data.error ?? "이슈 생성 실패");
 
     setMessage("이슈가 생성되었습니다.");
     setTitle("");
@@ -138,23 +125,12 @@ export default function AdminPage() {
 
     const res = await fetch("/api/admin/curations", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-admin-email": user.email,
-      },
-      body: JSON.stringify({
-        title: curationTitle,
-        description: curationDescription,
-        imageUrl: curationImageUrl,
-        issueIds: selectedIssueIds,
-      }),
+      headers: { "Content-Type": "application/json", "x-admin-email": user.email },
+      body: JSON.stringify({ title: curationTitle, description: curationDescription, imageUrl: curationImageUrl, issueIds: selectedIssueIds }),
     });
 
     const data = await res.json();
-    if (!res.ok) {
-      setMessage(data.error ?? "큐레이션 생성 실패");
-      return;
-    }
+    if (!res.ok) return setMessage(data.error ?? "큐레이션 생성 실패");
 
     setMessage("메인 큐레이션이 생성되었습니다.");
     setCurationTitle("");
@@ -169,20 +145,46 @@ export default function AdminPage() {
 
     const res = await fetch(`/api/admin/issues/${id}`, {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        "x-admin-email": user.email,
-      },
+      headers: { "Content-Type": "application/json", "x-admin-email": user.email },
       body: JSON.stringify({ status }),
     });
 
     const data = await res.json();
-    if (!res.ok) {
-      setMessage(data.error ?? "상태 변경 실패");
-      return;
-    }
+    if (!res.ok) return setMessage(data.error ?? "상태 변경 실패");
 
     setMessage("이슈 상태를 변경했습니다.");
+    await loadIssues(user.email);
+  };
+
+  const openEditModal = (issue: IssueItem) => {
+    setEditingIssue(issue);
+    setEditTitle(issue.title);
+    setEditDescription(issue.description);
+    setEditImageUrl(issue.imageUrl);
+    setEditTagsInput(issue.tags.join(", "));
+  };
+
+  const saveIssueEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.email || !editingIssue) return;
+
+    const editTags = editTagsInput.split(",").map((t) => t.trim()).filter(Boolean);
+    const res = await fetch(`/api/admin/issues/${editingIssue.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", "x-admin-email": user.email },
+      body: JSON.stringify({
+        title: editTitle,
+        description: editDescription,
+        imageUrl: editImageUrl,
+        tags: editTags,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) return setMessage(data.error ?? "이슈 수정 실패");
+
+    setMessage("이슈를 수정했습니다.");
+    setEditingIssue(null);
     await loadIssues(user.email);
   };
 
@@ -275,6 +277,7 @@ export default function AdminPage() {
                   <p className="text-xs text-slate-500">상태: {issue.status}</p>
                 </div>
                 <div className="flex flex-wrap gap-2 text-sm">
+                  <button className="pressable rounded-md border border-slate-300 px-2 py-1" onClick={() => openEditModal(issue)}>수정</button>
                   <button className="pressable rounded-md border border-slate-300 px-2 py-1" onClick={() => updateStatus(issue.id, "OPEN")}>재개</button>
                   <button className="pressable rounded-md border border-slate-300 px-2 py-1" onClick={() => updateStatus(issue.id, "ARCHIVED")}>아카이브</button>
                   <button className="pressable rounded-md border border-slate-300 px-2 py-1" onClick={() => updateStatus(issue.id, "HIDDEN")}>가리기</button>
@@ -285,6 +288,25 @@ export default function AdminPage() {
           {issues.length === 0 ? <p className="text-sm text-slate-500">생성된 이슈가 없습니다.</p> : null}
         </div>
       </section>
+
+      {editingIssue ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-2xl rounded-xl bg-white p-5 shadow-xl">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-lg font-semibold">이슈 수정</h3>
+              <button className="pressable text-sm text-slate-500" onClick={() => setEditingIssue(null)}>닫기</button>
+            </div>
+            <form onSubmit={saveIssueEdit} className="grid gap-3">
+              <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="이슈 제목" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+              <textarea className="min-h-24 rounded-lg border border-slate-300 px-3 py-2" placeholder="이슈 설명" value={editDescription} onChange={(e) => setEditDescription(e.target.value)} />
+              <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="대표 이미지 URL" value={editImageUrl} onChange={(e) => setEditImageUrl(e.target.value)} />
+              {editImageUrl ? <SafeImage src={editImageUrl} alt="edit preview" className="h-32 w-full rounded-lg object-cover" /> : null}
+              <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="태그 (쉼표 구분)" value={editTagsInput} onChange={(e) => setEditTagsInput(e.target.value)} />
+              <button className="pressable w-fit rounded-lg bg-slate-900 px-4 py-2 text-white" type="submit">수정 저장</button>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
