@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
-const truncateText = (text: string, max = 90) =>
+const truncateText = (text: string, max = 200) =>
   text.length > max ? `${text.slice(0, max)}...` : text;
 
 export default async function Home() {
