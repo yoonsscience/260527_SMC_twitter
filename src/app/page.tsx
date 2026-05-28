@@ -12,6 +12,15 @@ export default async function Home() {
     take: 9,
   });
 
+  const featuredCuration = await prisma.curation.findFirst({
+    where: { isActive: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const curatedIssues = featuredCuration
+    ? await prisma.issue.findMany({ where: { id: { in: featuredCuration.issueIds }, status: { not: "HIDDEN" } } })
+    : [];
+
   return (
     <main className="mx-auto w-full max-w-6xl px-6 py-10">
       <header className="mb-8 flex items-center justify-between">
@@ -25,19 +34,30 @@ export default async function Home() {
         <AuthButtons />
       </header>
 
-      <section className="mb-8 rounded-2xl bg-gradient-to-r from-cyan-700 to-sky-500 p-6 text-white">
-        <p className="text-xs uppercase tracking-widest text-cyan-100">메인 이슈 큐레이션</p>
-        <h2 className="mt-2 text-2xl font-bold">기후변화 특집</h2>
-        <p className="mt-2 max-w-3xl text-cyan-50">
-          2026년 봄 북반구 이상고온과 폭우가 동시에 관측되며, 도시 적응과 에너지 전환의 속도 논쟁이 다시 커지고 있습니다.
-        </p>
-        <div className="mt-4 flex flex-wrap gap-2 text-sm">
-          {recentIssues.slice(0, 3).map((issue) => (
-            <Link key={issue.id} href={`/issues/${issue.id}`} className="rounded-full bg-white/20 px-3 py-1 hover:bg-white/30">
-              {issue.title}
-            </Link>
-          ))}
-        </div>
+      <section className="mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-cyan-700 to-sky-500 text-white">
+        {featuredCuration ? (
+          <div className="grid gap-0 md:grid-cols-2">
+            <img src={featuredCuration.imageUrl} alt={featuredCuration.title} className="h-56 w-full object-cover md:h-full" />
+            <div className="p-6">
+              <p className="text-xs uppercase tracking-widest text-cyan-100">메인 이슈 큐레이션</p>
+              <h2 className="mt-2 text-2xl font-bold">{featuredCuration.title}</h2>
+              <p className="mt-2 max-w-3xl text-cyan-50">{featuredCuration.description}</p>
+              <div className="mt-4 flex flex-wrap gap-2 text-sm">
+                {curatedIssues.map((issue) => (
+                  <Link key={issue.id} href={`/issues/${issue.id}`} className="pressable rounded-full bg-white/20 px-3 py-1 hover:bg-white/30">
+                    {issue.title}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="p-6">
+            <p className="text-xs uppercase tracking-widest text-cyan-100">메인 이슈 큐레이션</p>
+            <h2 className="mt-2 text-2xl font-bold">기후변화 특집</h2>
+            <p className="mt-2 max-w-3xl text-cyan-50">관리자에서 큐레이션을 생성하면 이 영역에 표시됩니다.</p>
+          </div>
+        )}
       </section>
 
       <section>
@@ -47,14 +67,17 @@ export default async function Home() {
         </div>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {recentIssues.map((issue) => (
-            <Link key={issue.id} href={`/issues/${issue.id}`} className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-              <p className="text-xs text-cyan-700">{categoryLabelMap[issue.category]}</p>
-              <h4 className="mt-1 text-lg font-semibold text-slate-900">{issue.title}</h4>
-              <p className="mt-2 text-sm text-slate-600">{issue.description}</p>
-              <div className="mt-3 flex flex-wrap gap-1">
-                {issue.tags.map((tag) => (
-                  <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">#{tag}</span>
-                ))}
+            <Link key={issue.id} href={`/issues/${issue.id}`} className="pressable group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+              <img src={issue.imageUrl} alt={issue.title} className="h-36 w-full object-cover" />
+              <div className="p-4">
+                <p className="text-xs text-cyan-700">{categoryLabelMap[issue.category]}</p>
+                <h4 className="mt-1 text-lg font-semibold text-slate-900">{issue.title}</h4>
+                <p className="mt-2 text-sm text-slate-600">{issue.description}</p>
+                <div className="mt-3 flex flex-wrap gap-1">
+                  {issue.tags.map((tag) => (
+                    <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">#{tag}</span>
+                  ))}
+                </div>
               </div>
             </Link>
           ))}

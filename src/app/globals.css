@@ -20,3 +20,13 @@ body {
   color: var(--foreground);
   font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
 }
+
+button,
+.pressable {
+  transition: transform 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+}
+
+button:active,
+.pressable:active {
+  transform: translateY(1px) scale(0.99);
+}

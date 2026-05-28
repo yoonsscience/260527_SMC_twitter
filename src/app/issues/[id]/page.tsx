@@ -27,6 +27,7 @@ export default async function IssuePage({ params }: { params: Promise<{ id: stri
         title: issue.title,
         description: issue.description,
         categoryLabel: categoryLabelMap[issue.category],
+        imageUrl: issue.imageUrl,
         tags: issue.tags,
         status: issue.status,
       }}

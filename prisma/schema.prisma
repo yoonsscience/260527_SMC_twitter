@@ -46,7 +46,7 @@ model User {
 }
 
 model Issue {
-  id              String     @id @default(cuid())
+  id              String      @id @default(cuid())
   title           String
   description     String
   imageUrl        String
@@ -56,32 +56,44 @@ model Issue {
   relatedIssueIds String[]
   createdBy       String
   opinions        Opinion[]
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 }
 
 model Opinion {
-  id            String      @id @default(cuid())
-  issueId       String
-  issue         Issue       @relation(fields: [issueId], references: [id], onDelete: Cascade)
-  authorId      String
-  author        User        @relation(fields: [authorId], references: [id])
-  title         String
-  body          String
+  id             String      @id @default(cuid())
+  issueId        String
+  issue          Issue       @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  authorId       String
+  author         User        @relation(fields: [authorId], references: [id])
+  title          String
+  body           String
   quoteOpinionId String?
-  reactions     Reaction[]
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  reactions      Reaction[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
 }
 
 model Reaction {
-  id          String       @id @default(cuid())
-  opinionId   String
-  opinion     Opinion      @relation(fields: [opinionId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User         @relation(fields: [userId], references: [id])
+  id           String       @id @default(cuid())
+  opinionId    String
+  opinion      Opinion      @relation(fields: [opinionId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User         @relation(fields: [userId], references: [id])
   reactionType ReactionType
-  createdAt   DateTime     @default(now())
+  createdAt    DateTime     @default(now())
 
   @@unique([opinionId, userId])
+}
+
+model Curation {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  imageUrl    String
+  issueIds    String[]
+  isActive    Boolean  @default(true)
+  createdBy   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

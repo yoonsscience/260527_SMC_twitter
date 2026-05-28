@@ -13,9 +13,19 @@ type IssueItem = {
   id: string;
   title: string;
   description: string;
+  imageUrl: string;
   category: string;
   tags: string[];
   status: "OPEN" | "ARCHIVED" | "HIDDEN";
+};
+
+type CurationItem = {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  issueIds: string[];
+  isActive: boolean;
 };
 
 const categoryOptions = ["기초과학", "기후", "생명보건의료", "기술", "사회및사건사고", "기타"] as const;
@@ -23,6 +33,7 @@ const categoryOptions = ["기초과학", "기후", "생명보건의료", "기술
 export default function AdminPage() {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [issues, setIssues] = useState<IssueItem[]>([]);
+  const [curations, setCurations] = useState<CurationItem[]>([]);
   const [message, setMessage] = useState("");
 
   const [title, setTitle] = useState("");
@@ -30,6 +41,11 @@ export default function AdminPage() {
   const [imageUrl, setImageUrl] = useState("");
   const [tagsInput, setTagsInput] = useState("");
   const [category, setCategory] = useState<(typeof categoryOptions)[number]>("기초과학");
+
+  const [curationTitle, setCurationTitle] = useState("");
+  const [curationDescription, setCurationDescription] = useState("");
+  const [curationImageUrl, setCurationImageUrl] = useState("");
+  const [selectedIssueIds, setSelectedIssueIds] = useState<string[]>([]);
 
   useEffect(() => {
     const raw = localStorage.getItem("smc_user");
@@ -60,9 +76,20 @@ export default function AdminPage() {
     setIssues(data.issues ?? []);
   };
 
+  const loadCurations = async (email: string) => {
+    const res = await fetch("/api/admin/curations", {
+      headers: { "x-admin-email": email },
+      cache: "no-store",
+    });
+
+    const data = await res.json();
+    if (res.ok) setCurations(data.curations ?? []);
+  };
+
   useEffect(() => {
     if (isAdmin && user?.email) {
       void loadIssues(user.email);
+      void loadCurations(user.email);
     }
   }, [isAdmin, user?.email]);
 
@@ -86,14 +113,7 @@ export default function AdminPage() {
         "Content-Type": "application/json",
         "x-admin-email": user.email,
       },
-      body: JSON.stringify({
-        title,
-        description,
-        imageUrl,
-        tags,
-        category,
-        relatedIssueIds: [],
-      }),
+      body: JSON.stringify({ title, description, imageUrl, tags, category, relatedIssueIds: [] }),
     });
 
     const data = await res.json();
@@ -108,6 +128,39 @@ export default function AdminPage() {
     setImageUrl("");
     setTagsInput("");
     await loadIssues(user.email);
+  };
+
+  const createCuration = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setMessage("");
+    if (!user?.email) return;
+
+    const res = await fetch("/api/admin/curations", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-admin-email": user.email,
+      },
+      body: JSON.stringify({
+        title: curationTitle,
+        description: curationDescription,
+        imageUrl: curationImageUrl,
+        issueIds: selectedIssueIds,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      setMessage(data.error ?? "큐레이션 생성 실패");
+      return;
+    }
+
+    setMessage("메인 큐레이션이 생성되었습니다.");
+    setCurationTitle("");
+    setCurationDescription("");
+    setCurationImageUrl("");
+    setSelectedIssueIds([]);
+    await loadCurations(user.email);
   };
 
   const updateStatus = async (id: string, status: IssueItem["status"]) => {
@@ -137,7 +190,7 @@ export default function AdminPage() {
       <main className="mx-auto max-w-3xl px-6 py-12">
         <h1 className="text-2xl font-bold">관리자 페이지</h1>
         <p className="mt-2 text-slate-600">로그인 후 접근할 수 있습니다.</p>
-        <Link href="/login" className="mt-4 inline-block rounded-lg bg-slate-900 px-4 py-2 text-white">로그인하러 가기</Link>
+        <Link href="/login" className="pressable mt-4 inline-block rounded-lg bg-slate-900 px-4 py-2 text-white">로그인하러 가기</Link>
       </main>
     );
   }
@@ -159,7 +212,7 @@ export default function AdminPage() {
           <h1 className="text-2xl font-bold text-slate-900">관리자 대시보드</h1>
           <p className="text-sm text-slate-600">{user.name} ({user.email})</p>
         </div>
-        <Link href="/" className="rounded-lg border border-slate-300 px-3 py-2 text-sm">메인으로</Link>
+        <Link href="/" className="pressable rounded-lg border border-slate-300 px-3 py-2 text-sm">메인으로</Link>
       </div>
 
       <section className="rounded-xl border border-slate-200 bg-white p-5">
@@ -168,12 +221,44 @@ export default function AdminPage() {
           <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="이슈 제목" value={title} onChange={(e) => setTitle(e.target.value)} />
           <textarea className="min-h-24 rounded-lg border border-slate-300 px-3 py-2" placeholder="이슈 설명" value={description} onChange={(e) => setDescription(e.target.value)} />
           <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="대표 이미지 URL" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
+          {imageUrl ? <img src={imageUrl} alt="preview" className="h-32 w-full rounded-lg object-cover" /> : null}
           <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="태그 (쉼표 구분) 예: 기후,AI,정책" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} />
           <select className="rounded-lg border border-slate-300 px-3 py-2" value={category} onChange={(e) => setCategory(e.target.value as (typeof categoryOptions)[number])}>
             {categoryOptions.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
           </select>
-          <button className="w-fit rounded-lg bg-slate-900 px-4 py-2 text-white" type="submit">이슈 생성</button>
+          <button className="pressable w-fit rounded-lg bg-slate-900 px-4 py-2 text-white" type="submit">이슈 생성</button>
         </form>
+      </section>
+
+      <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
+        <h2 className="text-lg font-semibold">메인 이슈 큐레이션</h2>
+        <form onSubmit={createCuration} className="mt-4 grid gap-3">
+          <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="큐레이션 제목 (예: 기후변화 특집)" value={curationTitle} onChange={(e) => setCurationTitle(e.target.value)} />
+          <textarea className="min-h-20 rounded-lg border border-slate-300 px-3 py-2" placeholder="큐레이션 해설" value={curationDescription} onChange={(e) => setCurationDescription(e.target.value)} />
+          <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="큐레이션 이미지 URL" value={curationImageUrl} onChange={(e) => setCurationImageUrl(e.target.value)} />
+          {curationImageUrl ? <img src={curationImageUrl} alt="curation preview" className="h-32 w-full rounded-lg object-cover" /> : null}
+          <div className="rounded-lg border border-slate-200 p-3">
+            <p className="mb-2 text-sm font-medium">포함할 이슈 선택</p>
+            <div className="max-h-40 space-y-1 overflow-auto text-sm">
+              {issues.map((issue) => (
+                <label key={issue.id} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedIssueIds.includes(issue.id)}
+                    onChange={(e) => {
+                      if (e.target.checked) setSelectedIssueIds((prev) => [...prev, issue.id]);
+                      else setSelectedIssueIds((prev) => prev.filter((id) => id !== issue.id));
+                    }}
+                  />
+                  <span>{issue.title}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+          <button className="pressable w-fit rounded-lg bg-cyan-700 px-4 py-2 text-white" type="submit">큐레이션 생성</button>
+        </form>
+
+        {curations.length > 0 ? <p className="mt-3 text-xs text-slate-500">현재 활성 큐레이션: {curations.find((c) => c.isActive)?.title ?? "없음"}</p> : null}
       </section>
 
       <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
@@ -189,9 +274,9 @@ export default function AdminPage() {
                   <p className="text-xs text-slate-500">상태: {issue.status}</p>
                 </div>
                 <div className="flex flex-wrap gap-2 text-sm">
-                  <button className="rounded-md border border-slate-300 px-2 py-1" onClick={() => updateStatus(issue.id, "OPEN")}>재개</button>
-                  <button className="rounded-md border border-slate-300 px-2 py-1" onClick={() => updateStatus(issue.id, "ARCHIVED")}>아카이브</button>
-                  <button className="rounded-md border border-slate-300 px-2 py-1" onClick={() => updateStatus(issue.id, "HIDDEN")}>가리기</button>
+                  <button className="pressable rounded-md border border-slate-300 px-2 py-1" onClick={() => updateStatus(issue.id, "OPEN")}>재개</button>
+                  <button className="pressable rounded-md border border-slate-300 px-2 py-1" onClick={() => updateStatus(issue.id, "ARCHIVED")}>아카이브</button>
+                  <button className="pressable rounded-md border border-slate-300 px-2 py-1" onClick={() => updateStatus(issue.id, "HIDDEN")}>가리기</button>
                 </div>
               </div>
             </article>
