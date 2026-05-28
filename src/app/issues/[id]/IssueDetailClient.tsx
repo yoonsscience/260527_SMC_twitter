@@ -37,14 +37,17 @@ export default function IssueDetailClient({ issue, related }: { issue: IssueView
   const [body, setBody] = useState("");
   const [message, setMessage] = useState("");
   const [opinions, setOpinions] = useState<OpinionView[]>([]);
+  const [isLoadingOpinions, setIsLoadingOpinions] = useState(true);
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [quoteTarget, setQuoteTarget] = useState<OpinionView | null>(null);
 
   const loadOpinions = async () => {
+    setIsLoadingOpinions(true);
     const res = await fetch(`/api/issues/${issue.id}/opinions`, { cache: "no-store" });
     const data = await res.json();
     setOpinions(data.opinions ?? []);
+    setIsLoadingOpinions(false);
   };
 
   useEffect(() => {
@@ -163,7 +166,7 @@ export default function IssueDetailClient({ issue, related }: { issue: IssueView
         </div>
 
         {message ? <p className="mb-3 text-sm text-cyan-700">{message}</p> : null}
-        {sortedTop.length === 0 ? <p className="text-sm text-slate-500">아직 등록된 의견이 없습니다.</p> : null}
+        {isLoadingOpinions ? <p className="text-sm text-slate-500">의견을 불러오는 중입니다...</p> : sortedTop.length === 0 ? <p className="text-sm text-slate-500">아직 입력된 의견이 없습니다.</p> : null}
         <div className="space-y-3">{sortedTop.map((op, idx) => renderOpinion(op, 0, idx === 0 && op.votes.up > 0))}</div>
       </section>
 

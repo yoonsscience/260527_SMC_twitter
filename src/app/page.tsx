@@ -6,6 +6,9 @@ import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
 
+const truncateText = (text: string, max = 90) =>
+  text.length > max ? `${text.slice(0, max)}...` : text;
+
 export default async function Home() {
   const recentIssues = await prisma.issue.findMany({
     where: { status: { not: "HIDDEN" } },
@@ -73,7 +76,7 @@ export default async function Home() {
               <div className="p-4">
                 <p className="text-xs text-cyan-700">{categoryLabelMap[issue.category]}</p>
                 <h4 className="mt-1 text-lg font-semibold text-slate-900">{issue.title}</h4>
-                <p className="mt-2 text-sm text-slate-600">{issue.description}</p>
+                <p className="mt-2 text-sm text-slate-600">{truncateText(issue.description)}</p>
                 <div className="mt-3 flex flex-wrap gap-1">
                   {issue.tags.map((tag) => (
                     <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-700">#{tag}</span>
