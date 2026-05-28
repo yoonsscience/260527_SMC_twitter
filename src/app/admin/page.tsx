@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import SafeImage from "@/components/SafeImage";
 import { useEffect, useMemo, useState } from "react";
 
 type SessionUser = {
@@ -221,7 +222,7 @@ export default function AdminPage() {
           <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="이슈 제목" value={title} onChange={(e) => setTitle(e.target.value)} />
           <textarea className="min-h-24 rounded-lg border border-slate-300 px-3 py-2" placeholder="이슈 설명" value={description} onChange={(e) => setDescription(e.target.value)} />
           <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="대표 이미지 URL" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} />
-          {imageUrl ? <img src={imageUrl} alt="preview" className="h-32 w-full rounded-lg object-cover" /> : null}
+          {imageUrl ? <SafeImage src={imageUrl} alt="preview" className="h-32 w-full rounded-lg object-cover" /> : null}
           <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="태그 (쉼표 구분) 예: 기후,AI,정책" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} />
           <select className="rounded-lg border border-slate-300 px-3 py-2" value={category} onChange={(e) => setCategory(e.target.value as (typeof categoryOptions)[number])}>
             {categoryOptions.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
@@ -236,7 +237,7 @@ export default function AdminPage() {
           <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="큐레이션 제목 (예: 기후변화 특집)" value={curationTitle} onChange={(e) => setCurationTitle(e.target.value)} />
           <textarea className="min-h-20 rounded-lg border border-slate-300 px-3 py-2" placeholder="큐레이션 해설" value={curationDescription} onChange={(e) => setCurationDescription(e.target.value)} />
           <input className="rounded-lg border border-slate-300 px-3 py-2" placeholder="큐레이션 이미지 URL" value={curationImageUrl} onChange={(e) => setCurationImageUrl(e.target.value)} />
-          {curationImageUrl ? <img src={curationImageUrl} alt="curation preview" className="h-32 w-full rounded-lg object-cover" /> : null}
+          {curationImageUrl ? <SafeImage src={curationImageUrl} alt="curation preview" className="h-32 w-full rounded-lg object-cover" /> : null}
           <div className="rounded-lg border border-slate-200 p-3">
             <p className="mb-2 text-sm font-medium">포함할 이슈 선택</p>
             <div className="max-h-40 space-y-1 overflow-auto text-sm">

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SafeImage from "@/components/SafeImage";
 import AuthButtons from "@/components/AuthButtons";
 import { categoryLabelMap } from "@/lib/category";
 import { prisma } from "@/lib/prisma";
@@ -37,7 +38,7 @@ export default async function Home() {
       <section className="mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-cyan-700 to-sky-500 text-white">
         {featuredCuration ? (
           <div className="grid gap-0 md:grid-cols-2">
-            <img src={featuredCuration.imageUrl} alt={featuredCuration.title} className="h-56 w-full object-cover md:h-full" />
+            <SafeImage src={featuredCuration.imageUrl} alt={featuredCuration.title} className="h-56 w-full object-cover md:h-full" />
             <div className="p-6">
               <p className="text-xs uppercase tracking-widest text-cyan-100">메인 이슈 큐레이션</p>
               <h2 className="mt-2 text-2xl font-bold">{featuredCuration.title}</h2>
@@ -68,7 +69,7 @@ export default async function Home() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {recentIssues.map((issue) => (
             <Link key={issue.id} href={`/issues/${issue.id}`} className="pressable group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-              <img src={issue.imageUrl} alt={issue.title} className="h-36 w-full object-cover" />
+              <SafeImage src={issue.imageUrl} alt={issue.title} className="h-36 w-full object-cover" />
               <div className="p-4">
                 <p className="text-xs text-cyan-700">{categoryLabelMap[issue.category]}</p>
                 <h4 className="mt-1 text-lg font-semibold text-slate-900">{issue.title}</h4>

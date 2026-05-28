@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import SafeImage from "@/components/SafeImage";
 
 type RelatedIssue = { id: string; title: string };
 
@@ -139,7 +140,7 @@ export default function IssueDetailClient({ issue, related }: { issue: IssueView
       <Link className="text-sm text-cyan-700" href="/">← 메인으로</Link>
       <h1 className="mt-2 text-3xl font-bold text-slate-900">{issue.title}</h1>
       <p className="mt-3 text-slate-700">{issue.description}</p>
-      {issue.imageUrl ? <img src={issue.imageUrl} alt={issue.title} className="mt-4 h-64 w-full rounded-xl object-cover" /> : null}
+      <SafeImage src={issue.imageUrl} alt={issue.title} className="mt-4 h-64 w-full rounded-xl object-cover" />
 
       <div className="mt-4 flex flex-wrap gap-2">
         <span className="rounded-full bg-cyan-100 px-3 py-1 text-sm text-cyan-800">{issue.categoryLabel}</span>
