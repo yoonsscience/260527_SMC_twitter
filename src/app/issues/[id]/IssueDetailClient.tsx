@@ -22,7 +22,7 @@ type OpinionView = {
   body: string;
   quoteOpinionId?: string | null;
   votes: { up: number; down: number };
-  author: { name: string; email: string };
+  author: { id: string; name: string; email: string };
   createdAt?: string;
 };
 
@@ -30,6 +30,11 @@ type SessionUser = {
   name: string;
   email: string;
   role: "USER" | "ADMIN";
+};
+
+type UserSummary = {
+  user: { id: string; name: string; affiliation: string; email: string };
+  participatedIssues: { id: string; title: string }[];
 };
 
 export default function IssueDetailClient({ issue, related }: { issue: IssueView; related: RelatedIssue[] }) {
@@ -42,12 +47,25 @@ export default function IssueDetailClient({ issue, related }: { issue: IssueView
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [quoteTarget, setQuoteTarget] = useState<OpinionView | null>(null);
 
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [userSummary, setUserSummary] = useState<UserSummary | null>(null);
+  const [isLoadingUserSummary, setIsLoadingUserSummary] = useState(false);
+
   const loadOpinions = async () => {
     setIsLoadingOpinions(true);
     const res = await fetch(`/api/issues/${issue.id}/opinions`, { cache: "no-store" });
     const data = await res.json();
     setOpinions(data.opinions ?? []);
     setIsLoadingOpinions(false);
+  };
+
+  const loadUserSummary = async (userId: string) => {
+    setIsLoadingUserSummary(true);
+    const res = await fetch(`/api/users/${userId}/summary`, { cache: "no-store" });
+    const data = await res.json();
+    if (res.ok) setUserSummary(data);
+    setIsLoadingUserSummary(false);
   };
 
   useEffect(() => {
@@ -123,12 +141,24 @@ export default function IssueDetailClient({ issue, related }: { issue: IssueView
 
         <h3 className="font-semibold text-slate-900">{op.title}</h3>
         <p className="mt-1 whitespace-pre-wrap text-slate-700">{op.body}</p>
-        <p className="mt-3 text-xs text-slate-500">{op.author?.name} ({op.author?.email})</p>
+        <p className="mt-3 text-xs text-slate-500">
+          <button
+            className="pressable underline underline-offset-2"
+            onClick={async () => {
+              setSelectedUserId(op.author.id);
+              setIsProfileOpen(true);
+              await loadUserSummary(op.author.id);
+            }}
+          >
+            {op.author?.name}
+          </button>
+          <span> ({op.author?.email})</span>
+        </p>
 
         <div className="mt-3 flex flex-wrap gap-2 text-sm">
           <button title={!sessionUser ? "로그인 필요" : issue.status !== "OPEN" ? "종료된 이슈" : ""} disabled={!sessionUser || issue.status !== "OPEN"} className="pressable rounded-md border border-slate-300 px-2 py-1 disabled:cursor-not-allowed disabled:opacity-50" onClick={() => react(op.id, "UP")}>공감 +1 ({op.votes.up})</button>
           <button title={!sessionUser ? "로그인 필요" : issue.status !== "OPEN" ? "종료된 이슈" : ""} disabled={!sessionUser || issue.status !== "OPEN"} className="pressable rounded-md border border-slate-300 px-2 py-1 disabled:cursor-not-allowed disabled:opacity-50" onClick={() => react(op.id, "DOWN")}>반론 -1 ({op.votes.down})</button>
-          <button disabled={!sessionUser || issue.status !== "OPEN"} className="pressable rounded-md border border-cyan-300 px-2 py-1 text-cyan-700 disabled:cursor-not-allowed disabled:opacity-50" onClick={() => { if (!sessionUser || issue.status !== "OPEN") return; setQuoteTarget(op); setIsModalOpen(true); }}>인용 답글</button>
+          <button title={!sessionUser ? "로그인 필요" : issue.status !== "OPEN" ? "종료된 이슈" : ""} disabled={!sessionUser || issue.status !== "OPEN"} className="pressable rounded-md border border-cyan-300 px-2 py-1 text-cyan-700 disabled:cursor-not-allowed disabled:opacity-50" onClick={() => { if (!sessionUser || issue.status !== "OPEN") return; setQuoteTarget(op); setIsModalOpen(true); }}>인용 답글</button>
         </div>
 
         {children.length > 0 ? <div className="mt-3 space-y-3 border-l border-slate-200 pl-3">{children.map((child) => renderOpinion(child, depth + 1))}</div> : null}
@@ -183,6 +213,46 @@ export default function IssueDetailClient({ issue, related }: { issue: IssueView
               <textarea className="min-h-28 w-full rounded-lg border border-slate-300 px-3 py-2" placeholder="본문" value={body} onChange={(e) => setBody(e.target.value)} />
               <button className="pressable rounded-lg bg-slate-900 px-4 py-2 text-white" type="submit">등록</button>
             </form>
+          </div>
+        </div>
+      ) : null}
+
+      {isProfileOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-xl rounded-xl bg-white p-5 shadow-xl">
+            <div className="mb-3 flex items-center justify-between">
+              <h3 className="text-lg font-semibold">참여 이슈 모아보기</h3>
+              <button className="pressable text-sm text-slate-500" onClick={() => setIsProfileOpen(false)}>닫기</button>
+            </div>
+            {isLoadingUserSummary || !selectedUserId ? (
+              <p className="text-sm text-slate-500">사용자 정보를 불러오는 중입니다...</p>
+            ) : userSummary ? (
+              <div>
+                <div className="rounded-lg bg-slate-50 p-3 text-sm">
+                  <p><span className="font-semibold">이름:</span> {userSummary.user.name}</p>
+                  <p><span className="font-semibold">소속:</span> {userSummary.user.affiliation}</p>
+                  <p><span className="font-semibold">이메일:</span> {userSummary.user.email}</p>
+                </div>
+                <div className="mt-4">
+                  <p className="mb-2 text-sm font-semibold">참여한 이슈</p>
+                  <div className="space-y-2">
+                    {userSummary.participatedIssues.map((pIssue) => (
+                      <Link
+                        key={pIssue.id}
+                        href={`/issues/${pIssue.id}`}
+                        className="pressable block rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
+                        onClick={() => setIsProfileOpen(false)}
+                      >
+                        {pIssue.title}
+                      </Link>
+                    ))}
+                    {userSummary.participatedIssues.length === 0 ? <p className="text-sm text-slate-500">참여한 이슈가 없습니다.</p> : null}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-slate-500">사용자 정보를 불러오지 못했습니다.</p>
+            )}
           </div>
         </div>
       ) : null}

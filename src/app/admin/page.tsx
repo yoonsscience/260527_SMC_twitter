@@ -29,12 +29,22 @@ type CurationItem = {
   isActive: boolean;
 };
 
+type UserItem = {
+  id: string;
+  name: string;
+  affiliation: string;
+  email: string;
+  role: "USER" | "ADMIN";
+  createdAt: string;
+};
+
 const categoryOptions = ["기초과학", "기후", "생명보건의료", "기술", "사회및사건사고", "기타"] as const;
 
 export default function AdminPage() {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [issues, setIssues] = useState<IssueItem[]>([]);
   const [curations, setCurations] = useState<CurationItem[]>([]);
+  const [users, setUsers] = useState<UserItem[]>([]);
   const [message, setMessage] = useState("");
 
   const [title, setTitle] = useState("");
@@ -87,10 +97,21 @@ export default function AdminPage() {
     if (res.ok) setCurations(data.curations ?? []);
   };
 
+  const loadUsers = async (email: string) => {
+    const res = await fetch("/api/admin/users", {
+      headers: { "x-admin-email": email },
+      cache: "no-store",
+    });
+
+    const data = await res.json();
+    if (res.ok) setUsers(data.users ?? []);
+  };
+
   useEffect(() => {
     if (isAdmin && user?.email) {
       void loadIssues(user.email);
       void loadCurations(user.email);
+      void loadUsers(user.email);
     }
   }, [isAdmin, user?.email]);
 
@@ -172,12 +193,7 @@ export default function AdminPage() {
     const res = await fetch(`/api/admin/issues/${editingIssue.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json", "x-admin-email": user.email },
-      body: JSON.stringify({
-        title: editTitle,
-        description: editDescription,
-        imageUrl: editImageUrl,
-        tags: editTags,
-      }),
+      body: JSON.stringify({ title: editTitle, description: editDescription, imageUrl: editImageUrl, tags: editTags }),
     });
 
     const data = await res.json();
@@ -286,6 +302,35 @@ export default function AdminPage() {
             </article>
           ))}
           {issues.length === 0 ? <p className="text-sm text-slate-500">생성된 이슈가 없습니다.</p> : null}
+        </div>
+      </section>
+
+      <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5">
+        <h2 className="text-lg font-semibold">가입자 목록</h2>
+        <div className="mt-3 overflow-x-auto">
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="border-b border-slate-200 text-left text-slate-500">
+                <th className="px-2 py-2">이름</th>
+                <th className="px-2 py-2">소속</th>
+                <th className="px-2 py-2">이메일</th>
+                <th className="px-2 py-2">권한</th>
+                <th className="px-2 py-2">가입일</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((u) => (
+                <tr key={u.id} className="border-b border-slate-100">
+                  <td className="px-2 py-2">{u.name}</td>
+                  <td className="px-2 py-2">{u.affiliation}</td>
+                  <td className="px-2 py-2">{u.email}</td>
+                  <td className="px-2 py-2">{u.role}</td>
+                  <td className="px-2 py-2">{new Date(u.createdAt).toLocaleDateString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {users.length === 0 ? <p className="py-3 text-sm text-slate-500">가입자가 없습니다.</p> : null}
         </div>
       </section>
 

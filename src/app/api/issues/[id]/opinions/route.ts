@@ -7,7 +7,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const opinions = await prisma.opinion.findMany({
     where: { issueId: id },
     include: {
-      author: { select: { name: true, email: true } },
+      author: { select: { id: true, name: true, email: true } },
       reactions: true,
     },
     orderBy: { createdAt: "desc" },
