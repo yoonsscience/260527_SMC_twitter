@@ -17,16 +17,21 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     where: { authorId: id },
     select: {
       issue: { select: { id: true, title: true } },
+      reactions: { select: { reactionType: true } },
     },
   });
 
   const issueMap = new Map<string, { id: string; title: string }>();
+  let totalUpvotes = 0;
+
   for (const op of opinions) {
     issueMap.set(op.issue.id, op.issue);
+    totalUpvotes += op.reactions.filter((r) => r.reactionType === "UP").length;
   }
 
   return NextResponse.json({
     user,
+    totalUpvotes,
     participatedIssues: Array.from(issueMap.values()),
   });
 }

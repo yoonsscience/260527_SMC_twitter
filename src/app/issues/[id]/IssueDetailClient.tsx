@@ -34,6 +34,7 @@ type SessionUser = {
 
 type UserSummary = {
   user: { id: string; name: string; affiliation: string; email: string };
+  totalUpvotes: number;
   participatedIssues: { id: string; title: string }[];
 };
 
@@ -68,6 +69,13 @@ export default function IssueDetailClient({ issue, related }: { issue: IssueView
     setIsLoadingUserSummary(false);
   };
 
+  const openUserProfile = async (userId: string) => {
+    setSelectedUserId(userId);
+    setUserSummary(null);
+    setIsProfileOpen(true);
+    await loadUserSummary(userId);
+  };
+
   useEffect(() => {
     const raw = localStorage.getItem("smc_user");
     if (raw) {
@@ -91,6 +99,22 @@ export default function IssueDetailClient({ issue, related }: { issue: IssueView
     }
     return map;
   }, [opinions]);
+
+  const recommendedExperts = useMemo(() => {
+    if (!selectedUserId) return [] as { id: string; name: string; email: string; count: number }[];
+
+    const counter = new Map<string, { id: string; name: string; email: string; count: number }>();
+    for (const op of opinions) {
+      if (op.author.id === selectedUserId) continue;
+      const cur = counter.get(op.author.id);
+      if (cur) cur.count += 1;
+      else counter.set(op.author.id, { id: op.author.id, name: op.author.name, email: op.author.email, count: 1 });
+    }
+
+    return Array.from(counter.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 3);
+  }, [opinions, selectedUserId]);
 
   const topLevel = useMemo(() => opinions.filter((op) => !op.quoteOpinionId), [opinions]);
   const sorted = (list: OpinionView[]) => [...list].sort((a, b) => b.votes.up - b.votes.down - (a.votes.up - a.votes.down));
@@ -142,14 +166,7 @@ export default function IssueDetailClient({ issue, related }: { issue: IssueView
         <h3 className="font-semibold text-slate-900">{op.title}</h3>
         <p className="mt-1 whitespace-pre-wrap text-slate-700">{op.body}</p>
         <p className="mt-3 text-xs text-slate-500">
-          <button
-            className="pressable underline underline-offset-2"
-            onClick={async () => {
-              setSelectedUserId(op.author.id);
-              setIsProfileOpen(true);
-              await loadUserSummary(op.author.id);
-            }}
-          >
+          <button className="pressable underline underline-offset-2" onClick={() => void openUserProfile(op.author.id)}>
             {op.author?.name}
           </button>
           <span> ({op.author?.email})</span>
@@ -221,7 +238,15 @@ export default function IssueDetailClient({ issue, related }: { issue: IssueView
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-xl rounded-xl bg-white p-5 shadow-xl">
             <div className="mb-3 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">참여 이슈 모아보기</h3>
+              {userSummary ? (
+                <h3 className="flex items-center gap-2 text-lg font-semibold">
+                  <span>{userSummary.user.name}</span>
+                  <span className="text-base">🐦</span>
+                  <span className="text-sm font-medium text-cyan-700">{userSummary.totalUpvotes}</span>
+                </h3>
+              ) : (
+                <h3 className="text-lg font-semibold">전문가 정보</h3>
+              )}
               <button className="pressable text-sm text-slate-500" onClick={() => setIsProfileOpen(false)}>닫기</button>
             </div>
             {isLoadingUserSummary || !selectedUserId ? (
@@ -229,7 +254,6 @@ export default function IssueDetailClient({ issue, related }: { issue: IssueView
             ) : userSummary ? (
               <div>
                 <div className="rounded-lg bg-slate-50 p-3 text-sm">
-                  <p><span className="font-semibold">이름:</span> {userSummary.user.name}</p>
                   <p><span className="font-semibold">소속:</span> {userSummary.user.affiliation}</p>
                   <p><span className="font-semibold">이메일:</span> {userSummary.user.email}</p>
                 </div>
@@ -247,6 +271,22 @@ export default function IssueDetailClient({ issue, related }: { issue: IssueView
                       </Link>
                     ))}
                     {userSummary.participatedIssues.length === 0 ? <p className="text-sm text-slate-500">참여한 이슈가 없습니다.</p> : null}
+                  </div>
+                </div>
+
+                <div className="mt-5">
+                  <p className="mb-2 text-sm font-semibold">이런 전문가는 어때요?</p>
+                  <div className="space-y-2">
+                    {recommendedExperts.map((expert) => (
+                      <button
+                        key={expert.id}
+                        className="pressable block w-full rounded-lg border border-slate-200 px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-50"
+                        onClick={() => void openUserProfile(expert.id)}
+                      >
+                        {expert.name} <span className="text-xs text-slate-500">(이 이슈 의견 {expert.count}회)</span>
+                      </button>
+                    ))}
+                    {recommendedExperts.length === 0 ? <p className="text-sm text-slate-500">추천할 전문가가 없습니다.</p> : null}
                   </div>
                 </div>
               </div>
